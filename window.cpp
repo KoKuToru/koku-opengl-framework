@@ -6,7 +6,7 @@ using namespace opengl;
 int window::sdl_count = 0;
 
 window::window(windowCallback *callback, std::string title, int width, int height, bool vsync, bool resizeable):
-	callback(callback), win(nullptr), win_w(width), win_h(height), ren(nullptr)
+	callback(callback), win(nullptr), win_w(width), win_h(height), ren(nullptr), ctx(nullptr)
 {
 	if (sdl_count == 0)
 	{
@@ -17,14 +17,26 @@ window::window(windowCallback *callback, std::string title, int width, int heigh
 	}
 	sdl_count += 1;
 
-	win = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, win_w, win_h, SDL_WINDOW_SHOWN | (resizeable?SDL_WINDOW_RESIZABLE:0));
+	win = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, win_w, win_h, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | (resizeable?SDL_WINDOW_RESIZABLE:0));
 	if (win == nullptr)
 	{
 		throw std::string(SDL_GetError());
 	}
 
-	ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED | (vsync?SDL_RENDERER_PRESENTVSYNC:0));
+	/*
+	 *ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED | (vsync?SDL_RENDERER_PRESENTVSYNC:0));
 	if (ren == nullptr)
+	{
+		throw std::string(SDL_GetError());
+	}
+	*/
+
+	//OpenGL 4.2
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+
+	ctx = SDL_GL_CreateContext(win);
+	if (ctx == nullptr)
 	{
 		throw std::string(SDL_GetError());
 	}
@@ -32,6 +44,12 @@ window::window(windowCallback *callback, std::string title, int width, int heigh
 
 window::~window()
 {
+	if (ctx != nullptr)
+	{
+		SDL_GL_DeleteContext(ctx);
+		ctx = nullptr;
+	}
+
 	if (ren != nullptr)
 	{
 		SDL_DestroyRenderer(ren);
@@ -94,9 +112,20 @@ void window::update()
 
 void window::flip(int ms_wait)
 {
-	SDL_RenderPresent(ren);
+	//SDL_RenderPresent(ren);
+	SDL_GL_SwapWindow(win);
 	if (ms_wait > 0)
 	{
 		SDL_Delay(ms_wait);
 	}
+}
+
+void window::begin()
+{
+	SDL_GL_MakeCurrent(win, ctx);
+}
+
+void window::end()
+{
+	//nothing atm
 }
