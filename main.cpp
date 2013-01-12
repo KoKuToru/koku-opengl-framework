@@ -2,7 +2,7 @@
 
 /*
 	Simple test programm
-	
+
 	compile with: g++ *.cpp -lSDL
 */
 
@@ -11,7 +11,7 @@ class test_window: public koku::opengl::windowCallback
 	private:
 		koku::opengl::window my_window;
 		bool run;
-		
+
 	protected:
 		void onQuit()
 		{
@@ -20,14 +20,15 @@ class test_window: public koku::opengl::windowCallback
 		}
 
 	public:
-		test_window(): my_window(this, 640, 480, true), run(true)
+		test_window(): my_window(this, "test", 640, 480, true), run(true)
 		{
-			
+
 		}
-		
+
 		bool update()
 		{
 			my_window.update();
+			my_window.flip(0);
 			return run;
 		}
 };
@@ -35,9 +36,9 @@ class test_window: public koku::opengl::windowCallback
 int main()
 {
 	test_window test;
-	
+
 	while(test.update());
-	
+
 	return 0;
 }
 

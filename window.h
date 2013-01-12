@@ -1,6 +1,8 @@
 #ifndef KOKUOPENGLWINDOW
-#include <SDL/SDL.h>
-#include <SDL/SDL_opengl.h>
+#define KOKUOPENGLWINDOW
+
+#include <SDL2/SDL.h>
+#include <string>
 
 namespace koku
 {
@@ -12,19 +14,23 @@ namespace koku
 				virtual void onResize(int width, int height) {}
 				virtual void onQuit() {}
 		};
-		
+
 		class window
 		{
 			private:
+				static int sdl_count;
+
 				windowCallback *callback;
-				SDL_Surface *context;		
-				static bool first_time;
-				
+				SDL_Window *win;
+				int win_w, win_h;
+				SDL_Renderer *ren;
+
 			public:
-				window(windowCallback *callback, int width=640, int height=480, bool vsync=true);
+				window(windowCallback *callback, std::string title, int width=640, int height=480, bool vsync=true, bool resizeable=false);
 				~window();
-				
+
 				void update();
+				void flip(int ms_wait=0);
 		};
 	}
 }
