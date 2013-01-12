@@ -17,7 +17,7 @@ window::window(windowCallback *callback, std::string title, int width, int heigh
 	}
 	sdl_count += 1;
 
-	win = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, win_w, win_h, SDL_WINDOW_SHOWN);
+	win = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, win_w, win_h, SDL_WINDOW_SHOWN | (resizeable?SDL_WINDOW_RESIZABLE:0));
 	if (win == nullptr)
 	{
 		throw std::string(SDL_GetError());
@@ -57,11 +57,38 @@ void window::update()
 	SDL_Event e;
 	while (SDL_PollEvent(&e))
 	{
-		if (e.type == SDL_QUIT)
+		switch(e.type)
 		{
-			callback->onQuit();
+			case SDL_QUIT:
+				//or not ? see SQL_WINDOWEVENT. SDL_WINDOWEVENT_CLOSE
+				callback->onQuit();
+				break;
+			case SDL_WINDOWEVENT:
+				if (e.window.windowID == SDL_GetWindowID(win))
+				{
+					switch (e.window.event)
+					{
+						case SDL_WINDOWEVENT_SIZE_CHANGED:
+							win_w = e.window.data1;
+							win_h = e.window.data2;
+							callback->onResize(win_w, win_h);
+							break;
+						case SDL_WINDOWEVENT_CLOSE:
+							callback->onQuit();
+							break;
+						default:
+							break;
+					}
+				}
+				else
+				{
+					//TODO .. handle multiply windows ??
+					//what should I do ? now ?
+				}
+				break;
+			default:
+				break;
 		}
-		//else if (e.type == )
 	}
 }
 
