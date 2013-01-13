@@ -34,6 +34,7 @@ window::window(windowCallback *callback, std::string title, int width, int heigh
 	//OpenGL 4.2
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
 	ctx = SDL_GL_CreateContext(win);
 	if (ctx == nullptr)
@@ -128,4 +129,35 @@ void window::begin()
 void window::end()
 {
 	//nothing atm
+}
+
+buffer::buffer(window *win):
+	win(win), id(0)
+{
+	win->begin();
+	glGenVertexArrays(1, &id);
+	//TODO error check
+	win->end();
+}
+
+buffer::~buffer()
+{
+	for(int i = 0; i < uploads.size(); ++i)
+	{
+		GLuint tmp = uploads[i];
+		glDeleteBuffers(1, &tmp);
+	}
+	uploads.clear();
+	glDeleteVertexArrays(1, &id);
+}
+
+void buffer::upload(bool element, const float *data, int size)
+{
+	win->begin();
+	GLuint tmp;
+	glBindVertexArray(id);
+	glGenBuffers(1, &tmp);
+	glBindBuffer(element?GL_ELEMENT_ARRAY_BUFFER:GL_ARRAY_BUFFER, tmp);
+	glBufferData(element?GL_ELEMENT_ARRAY_BUFFER:GL_ARRAY_BUFFER, sizeof(float)*size, data, GL_STATIC_DRAW);
+	win->end();
 }

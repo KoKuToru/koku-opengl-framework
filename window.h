@@ -2,7 +2,12 @@
 #define KOKUOPENGLWINDOW
 
 #include <SDL2/SDL.h>
+
+#define GL_GLEXT_PROTOTYPES 1
+
+#include <SDL2/SDL_opengl.h>
 #include <string>
+#include <vector>
 
 namespace koku
 {
@@ -15,8 +20,11 @@ namespace koku
 				virtual void onQuit() {}
 		};
 
+		class buffer;
 		class window
 		{
+			friend class buffer;
+
 			private:
 				static int sdl_count;
 
@@ -35,6 +43,21 @@ namespace koku
 				//render control:
 				void begin();
 				void end();
+		};
+
+		class buffer
+		{
+			private:
+				window* win;
+				GLuint id;
+
+				std::vector<GLuint> uploads;
+
+			public:
+				buffer(window* win);
+				~buffer();
+
+				void upload(bool element, const float* data, int size);
 		};
 	}
 }
