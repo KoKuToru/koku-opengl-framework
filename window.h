@@ -20,11 +20,8 @@ namespace koku
 				virtual void onQuit() {}
 		};
 
-		class buffer;
 		class window
 		{
-			friend class buffer;
-
 			private:
 				static int sdl_count;
 
@@ -57,7 +54,35 @@ namespace koku
 				buffer(window* win);
 				~buffer();
 
-				void upload(bool element, const float* data, int size);
+				void upload(bool element, const float* data, int size, int item_size);
+				void upload(bool element, const unsigned short* data, int size, int item_size);
+				void render(int vertex_per_face, int count);
+		};
+
+		class shader
+		{
+			private:
+				window* win;
+				GLuint programm;
+				GLuint vertex;
+				GLuint tessellation_control;
+				GLuint tessellation_eval;
+				GLuint geometry;
+				GLuint fragment;
+
+			public:
+				shader(window* win);
+				~shader();
+				void uploadVertex(std::string source);
+				void uploadTessellationControl(std::string source);
+				void uploadTessellationEval(std::string source);
+				void uploadGeometry(std::string source);
+				void uploadFragment(std::string source);
+
+				void compile();
+
+				void begin();
+				void end();
 		};
 	}
 }
