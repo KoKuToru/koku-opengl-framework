@@ -53,19 +53,24 @@ class test_window: public koku::opengl::windowCallback
 								   "layout(location = 0) in vec3 Position;\n"
 								   "layout(location = 1) in vec3 Color;\n"
 								   "out vec3 Position_tc;\n"
+								   "out vec3 Color_tc;\n"
 								   "void main()\n"
 								   "{\n"
 								   "	Position_tc = Position;\n" //pass position to tesslelation control shader
+								   "	Color_tc = Color;\n"
 								   "}\n");
 
 			my_shader.uploadTessellationControl("#version 400\n"
 												"layout(vertices = 4) out;"
 												"in vec3 Position_tc[];\n"
+												"in vec3 Color_tc[];\n"
 												"out vec3 Position_te[];\n"
+												"out vec3 Color_te[];\n"
 												"#define ID gl_InvocationID\n"
 												"void main()\n"
 												"{\n"
 												"	Position_te[ID] = Position_tc[ID];\n"
+												"	Color_te[ID] = Color_tc[ID];\n"
 												"	if (ID != 0)\n"
 												"	{\n"
 												"		gl_TessLevelInner[0] = 16;\n" //tes-level
@@ -81,19 +86,25 @@ class test_window: public koku::opengl::windowCallback
 			my_shader.uploadTessellationEval("#version 400\n"
 											 "layout(quads, equal_spacing) in;\n"
 											 "in vec3 Position_te[];\n"
+											 "in vec3 Color_te[];\n"
+											 "out vec3 Color_fr;\n"
 											 "void main()\n"
 											 "{\n"
 											 "	float u = gl_TessCoord.x, v = gl_TessCoord.y;\n"
 											 "	vec3 a = mix(Position_te[0], Position_te[1], u);\n"
 											 "	vec3 b = mix(Position_te[2], Position_te[3], u);\n"
 											 "	gl_Position = vec4(mix(a, b, v), 1.0);\n"
+											 "	a = mix(Color_te[0], Color_te[1], u);\n"
+											 "	b = mix(Color_te[2], Color_te[3], u);\n"
+											 "	Color_fr = mix(a, b, v);\n"
 											 "}\n");
 
 			my_shader.uploadFragment("#version 400\n"
 									 "layout(location = 0) out vec4 FragColor;\n"
+									 "in vec3 Color_fr;\n"
 									 "void main()\n"
 									 "{\n"
-									 "	FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n"
+									 "	FragColor = vec4(Color_fr, 1.0);\n"
 									 "}\n");
 
 			my_shader.compile();
@@ -104,7 +115,7 @@ class test_window: public koku::opengl::windowCallback
 			my_window.update();
 
 			my_window.begin();
-				glClearColor(0,1,0,1);
+				glClearColor(1,1,1,1);
 				glClear(GL_COLOR_BUFFER_BIT);
 				glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ); //uhm no lights yet
 			my_window.end();
