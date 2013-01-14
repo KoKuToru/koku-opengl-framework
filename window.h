@@ -59,6 +59,7 @@ namespace koku
 				void render(int vertex_per_face, int count);
 		};
 
+		class shader_uniform;
 		class shader
 		{
 			private:
@@ -69,6 +70,10 @@ namespace koku
 				GLuint tessellation_eval;
 				GLuint geometry;
 				GLuint fragment;
+
+				int version;
+
+				void checkUniform(shader_uniform* uniform);
 
 			public:
 				shader(window* win);
@@ -83,6 +88,29 @@ namespace koku
 
 				void begin();
 				void end();
+
+				void set(shader_uniform *uniform, int item_cout, int count, GLfloat* value);
+				void set(shader_uniform* uniform, int item_cout, int count, GLint* value);
+				void set(shader_uniform *uniform, int item_cout, int count, GLuint* value);
+
+				void set(shader_uniform* uniform, GLfloat value);
+				void set(shader_uniform* uniform, GLint value);
+				void set(shader_uniform* uniform, GLuint value);
+		};
+
+		class shader_uniform
+		{
+			friend class shader;
+
+			private:
+				std::string name;
+				shader* last_sha;
+				int last_version;
+
+				GLint id;
+
+			public:
+				shader_uniform(std::string name) : name(name), last_sha(nullptr), last_version(-1), id(-1) {}
 		};
 	}
 }

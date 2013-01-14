@@ -302,7 +302,7 @@ void buffer::render(int vertex_per_face, int count)
 }
 
 shader::shader(window* win):
-	win(win), programm(-1), vertex(-1), tessellation_control(-1), tessellation_eval(-1), geometry(-1), fragment(-1)
+	win(win), programm(-1), vertex(-1), tessellation_control(-1), tessellation_eval(-1), geometry(-1), fragment(-1), version(0)
 {}
 
 shader::~shader()
@@ -467,6 +467,8 @@ void shader::compile()
 
 	printProgramInfoLog(programm);
 
+	version += 1; //increase version count -> update shader_uniform's
+
 	win->end();
 }
 
@@ -480,4 +482,115 @@ void shader::end()
 {
 	glUseProgram(0);
 	win->end();
+}
+
+void shader::checkUniform(shader_uniform* uniform)
+{
+	if ((uniform->last_sha != this)||(uniform->last_version != version))
+	{
+		//take new, shader changed
+		uniform->last_sha = this;
+		uniform->last_version = version;
+
+		uniform->id = glGetUniformLocation(programm, uniform->name.c_str());
+	}
+}
+
+void shader::set(shader_uniform *uniform, int item_cout, int count, GLfloat* value)
+{
+	win->begin();
+	checkUniform(uniform);
+	if (uniform->id != -1)
+	{
+		switch(item_cout)
+		{
+			case 1:
+				glProgramUniform1fv(programm, uniform->id, count, value);
+				break;
+			case 2:
+				glProgramUniform2fv(programm, uniform->id, count, value);
+				break;
+			case 3:
+				glProgramUniform3fv(programm, uniform->id, count, value);
+				break;
+			case 4:
+				glProgramUniform4fv(programm, uniform->id, count, value);
+				break;
+			default:
+				//what ?
+				break;
+		}
+	}
+	win->end();
+}
+
+void shader::set(shader_uniform *uniform, int item_cout, int count, GLint* value)
+{
+	win->begin();
+	checkUniform(uniform);
+	if (uniform->id != -1)
+	{
+		switch(item_cout)
+		{
+			case 1:
+				glProgramUniform1iv(programm, uniform->id, count, value);
+				break;
+			case 2:
+				glProgramUniform2iv(programm, uniform->id, count, value);
+				break;
+			case 3:
+				glProgramUniform3iv(programm, uniform->id, count, value);
+				break;
+			case 4:
+				glProgramUniform4iv(programm, uniform->id, count, value);
+				break;
+			default:
+				//what ?
+				break;
+		}
+	}
+	win->end();
+}
+
+void shader::set(shader_uniform *uniform, int item_cout, int count, GLuint *value)
+{
+	win->begin();
+	checkUniform(uniform);
+	if (uniform->id != -1)
+	{
+		switch(item_cout)
+		{
+			case 1:
+				glProgramUniform1uiv(programm, uniform->id, count, value);
+				break;
+			case 2:
+				glProgramUniform2uiv(programm, uniform->id, count, value);
+				break;
+			case 3:
+				glProgramUniform3uiv(programm, uniform->id, count, value);
+				break;
+			case 4:
+				glProgramUniform4uiv(programm, uniform->id, count, value);
+				break;
+			default:
+				//what ?
+				break;
+		}
+	}
+	win->end();
+}
+
+void shader::set(shader_uniform* uniform, GLfloat value)
+{
+	set(uniform, 1, 1, &value);
+}
+
+void shader::set(shader_uniform* uniform, GLint value)
+{
+	set(uniform, 1, 1, &value);
+}
+
+void shader::set(shader_uniform* uniform, GLuint value)
+{
+	set(uniform, 1, 1, &value);
 }
