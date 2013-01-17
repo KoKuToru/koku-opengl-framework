@@ -11,6 +11,12 @@ void debugOutput(unsigned int source, unsigned int type, unsigned int id,
 				 unsigned int severity, int length,
 				 const char* message, void* userParam)
 {
+	if (std::string(message, std::string("Buffer detailed info").size()) == "Buffer detailed info")
+	{
+		//filter it
+		return;
+	}
+
 	std::string error_source, error_type, error_severity;
 	switch(source)
 	{
@@ -113,7 +119,7 @@ window::window(windowCallback *callback, std::string title, int width, int heigh
 
 	//OpenGL 4.2
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -343,77 +349,27 @@ shader::~shader()
 
 void shader::uploadVertex(std::string source)
 {
-	win->begin();
-	if (vertex != -1)
-	{
-		glDeleteShader(vertex);
-		vertex = -1;
-	}
-	vertex = glCreateShader(GL_VERTEX_SHADER);
-	const char* source_cstr = source.c_str();
-	glShaderSource(vertex, 1, &source_cstr, 0);
-	glCompileShader(vertex);
-	win->end();
+	upload(GL_VERTEX_SHADER, vertex, source);
 }
 
 void shader::uploadTessellationControl(std::string source)
 {
-	win->begin();
-	if (tessellation_control != -1)
-	{
-		glDeleteShader(tessellation_control);
-		tessellation_control = -1;
-	}
-	tessellation_control = glCreateShader(GL_TESS_CONTROL_SHADER);
-	const char* source_cstr = source.c_str();
-	glShaderSource(tessellation_control, 1, &source_cstr, 0);
-	glCompileShader(tessellation_control);
-	win->end();
+	upload(GL_TESS_CONTROL_SHADER, tessellation_control, source);
 }
 
 void shader::uploadTessellationEval(std::string source)
 {
-	win->begin();
-	if (tessellation_eval != -1)
-	{
-		glDeleteShader(tessellation_eval);
-		tessellation_eval = -1;
-	}
-	tessellation_eval = glCreateShader(GL_TESS_EVALUATION_SHADER);
-	const char* source_cstr = source.c_str();
-	glShaderSource(tessellation_eval, 1, &source_cstr, 0);
-	glCompileShader(tessellation_eval);
-	win->end();
+	upload(GL_TESS_EVALUATION_SHADER, tessellation_eval, source);
 }
 
 void shader::uploadGeometry(std::string source)
 {
-	win->begin();
-	if (geometry != -1)
-	{
-		glDeleteShader(geometry);
-		geometry = -1;
-	}
-	geometry = glCreateShader(GL_GEOMETRY_SHADER);
-	const char* source_cstr = source.c_str();
-	glShaderSource(geometry, 1, &source_cstr, 0);
-	glCompileShader(geometry);
-	win->end();
+	upload(GL_GEOMETRY_SHADER, geometry, source);
 }
 
 void shader::uploadFragment(std::string source)
 {
-	win->begin();
-	if (fragment != -1)
-	{
-		glDeleteShader(fragment);
-		fragment = -1;
-	}
-	fragment = glCreateShader(GL_FRAGMENT_SHADER);
-	const char* source_cstr = source.c_str();
-	glShaderSource(fragment, 1, &source_cstr, 0);
-	glCompileShader(fragment);
-	win->end();
+	upload(GL_FRAGMENT_SHADER, fragment, source);
 }
 
 void printProgramInfoLog(GLuint obj)
@@ -496,13 +452,13 @@ void shader::checkUniform(shader_uniform* uniform)
 	}
 }
 
-void shader::set(shader_uniform *uniform, int item_cout, int count, GLfloat* value)
+void shader::set(shader_uniform *uniform, int item_count, int count, GLfloat* value)
 {
 	win->begin();
 	checkUniform(uniform);
 	if (uniform->id != -1)
 	{
-		switch(item_cout)
+		switch(item_count)
 		{
 			case 1:
 				glProgramUniform1fv(programm, uniform->id, count, value);
@@ -524,13 +480,13 @@ void shader::set(shader_uniform *uniform, int item_cout, int count, GLfloat* val
 	win->end();
 }
 
-void shader::set(shader_uniform *uniform, int item_cout, int count, GLint* value)
+void shader::set(shader_uniform *uniform, int item_count, int count, GLint* value)
 {
 	win->begin();
 	checkUniform(uniform);
 	if (uniform->id != -1)
 	{
-		switch(item_cout)
+		switch(item_count)
 		{
 			case 1:
 				glProgramUniform1iv(programm, uniform->id, count, value);
@@ -552,13 +508,13 @@ void shader::set(shader_uniform *uniform, int item_cout, int count, GLint* value
 	win->end();
 }
 
-void shader::set(shader_uniform *uniform, int item_cout, int count, GLuint *value)
+void shader::set(shader_uniform *uniform, int item_count, int count, GLuint *value)
 {
 	win->begin();
 	checkUniform(uniform);
 	if (uniform->id != -1)
 	{
-		switch(item_cout)
+		switch(item_count)
 		{
 			case 1:
 				glProgramUniform1uiv(programm, uniform->id, count, value);
@@ -593,4 +549,89 @@ void shader::set(shader_uniform* uniform, GLint value)
 void shader::set(shader_uniform* uniform, GLuint value)
 {
 	set(uniform, 1, 1, &value);
+}
+
+void shader::upload(GLenum what, GLuint &where, std::string source)
+{
+	win->begin();
+	if (where != -1)
+	{
+		glDeleteShader(where);
+		where = -1;
+	}
+	where = glCreateShader(what);
+	const char* source_cstr = source.c_str();
+	glShaderSource(where, 1, &source_cstr, 0);
+	glCompileShader(where);
+	win->end();
+}
+
+compute::compute(window* win): my_shader(win)
+{}
+
+void compute::upload(std::string source)
+{
+	//miss use vertex, is of course our compute shader
+	my_shader.upload(GL_COMPUTE_SHADER, my_shader.vertex, source);
+}
+
+void compute::compile()
+{
+	my_shader.compile();
+}
+
+void compute::begin()
+{
+	my_shader.begin();
+}
+
+void compute::end()
+{
+	my_shader.begin();
+}
+
+void compute::set(shader_uniform *uniform, int item_count, int count, GLfloat* value)
+{
+	my_shader.set(uniform, item_count, count, value);
+}
+
+void compute::set(shader_uniform* uniform, int item_count, int count, GLint* value)
+{
+	my_shader.set(uniform, item_count, count, value);
+}
+
+void compute::set(shader_uniform *uniform, int item_count, int count, GLuint* value)
+{
+	my_shader.set(uniform, item_count, count, value);
+}
+
+void compute::set(shader_uniform* uniform, GLfloat value)
+{
+	my_shader.set(uniform, value);
+}
+
+void compute::set(shader_uniform* uniform, GLint value)
+{
+	my_shader.set(uniform, value);
+}
+
+void compute::set(shader_uniform* uniform, GLuint value)
+{
+	my_shader.set(uniform, value);
+}
+
+void compute::execute(int num_groups_x, int num_groups_y, int num_groups_z)
+{
+	glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
+}
+
+void buffer::execute(compute* compute_shader, int num_groups_x, int num_groups_y, int num_groups_z)
+{
+	for(int i = 0; i < uploads.size(); ++i)
+	{
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, i, uploads[i]);
+		glBindBufferBase(GL_UNIFORM_BUFFER, i, uploads[i]); //uhm ?
+	}
+
+	compute_shader->execute(num_groups_x, num_groups_y, num_groups_z);
 }

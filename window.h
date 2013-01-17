@@ -1,11 +1,14 @@
 #ifndef KOKUOPENGLWINDOW
 #define KOKUOPENGLWINDOW
 
+#define NO_SDL_GLEXT
 #include <SDL2/SDL.h>
+//#include <SDL2/SDL_opengl.h> //NO_SDL_GLEXT not working ?
 
-#define GL_GLEXT_PROTOTYPES 1
+#define GL_GLEXT_PROTOTYPES
+#include <GL/gl.h> //<SDL2/SDL_opengl.h> not working right
+#include <GL/glext.h>
 
-#include <SDL2/SDL_opengl.h>
 #include <string>
 #include <vector>
 
@@ -42,6 +45,7 @@ namespace koku
 				void end();
 		};
 
+		class compute;
 		class buffer
 		{
 			private:
@@ -57,11 +61,15 @@ namespace koku
 				void upload(bool element, const float* data, int size, int item_size);
 				void upload(bool element, const unsigned short* data, int size, int item_size);
 				void render(int vertex_per_face, int count);
+
+				void execute(compute* compute_shader, int num_groups_x, int num_groups_y, int num_groups_z);
 		};
 
 		class shader_uniform;
 		class shader
 		{
+			friend class compute;
+
 			private:
 				window* win;
 				GLuint programm;
@@ -74,6 +82,7 @@ namespace koku
 				int version;
 
 				void checkUniform(shader_uniform* uniform);
+				void upload(GLenum what, GLuint& where, std::string source);
 
 			public:
 				shader(window* win);
@@ -89,9 +98,9 @@ namespace koku
 				void begin();
 				void end();
 
-				void set(shader_uniform *uniform, int item_cout, int count, GLfloat* value);
-				void set(shader_uniform* uniform, int item_cout, int count, GLint* value);
-				void set(shader_uniform *uniform, int item_cout, int count, GLuint* value);
+				void set(shader_uniform *uniform, int item_count, int count, GLfloat* value);
+				void set(shader_uniform* uniform, int item_count, int count, GLint* value);
+				void set(shader_uniform *uniform, int item_count, int count, GLuint* value);
 
 				void set(shader_uniform* uniform, GLfloat value);
 				void set(shader_uniform* uniform, GLint value);
@@ -111,6 +120,31 @@ namespace koku
 
 			public:
 				shader_uniform(std::string name) : name(name), last_sha(nullptr), last_version(-1), id(-1) {}
+		};
+
+		class compute
+		{
+			private:
+				shader my_shader;
+
+			public:
+				compute(window* win);
+
+				void upload(std::string source);
+				void compile();
+
+				void begin();
+				void end();
+
+				void set(shader_uniform *uniform, int item_count, int count, GLfloat* value);
+				void set(shader_uniform* uniform, int item_count, int count, GLint* value);
+				void set(shader_uniform *uniform, int item_count, int count, GLuint* value);
+
+				void set(shader_uniform* uniform, GLfloat value);
+				void set(shader_uniform* uniform, GLint value);
+				void set(shader_uniform* uniform, GLuint value);
+
+				void execute(int num_groups_x, int num_groups_y, int num_groups_z); //glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
 		};
 	}
 }
