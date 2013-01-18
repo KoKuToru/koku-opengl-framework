@@ -129,6 +129,7 @@ class test_window: public koku::opengl::windowCallback
 									 "in vec3 Position_geo[];\n"
 									 "in vec3 Color_geo[];\n"
 									 "out vec3 Color_fr;\n"
+									 "out vec3 Distance;\n"
 									 "layout (binding=2) uniform result { mat4 CameraMatrix[]; }; \n" //gets data from compute shader
 									 "void main()\n"
 									 "{\n"
@@ -136,6 +137,9 @@ class test_window: public koku::opengl::windowCallback
 									 "	{\n"
 									 "		gl_Position = CameraMatrix[0] * vec4(Position_geo[i], 1.0);\n" //again doesn't matter which ModelViewMatrix_geo (should be all the same)
 									 "		Color_fr = Color_geo[i];\n"
+									 "		if (i == 0) Distance = vec3(1,0,0);\n"
+									 "		else if (i == 1) Distance = vec3(0,1,0);\n"
+									 "		else Distance = vec3(0,0,1);\n"
 									 "		EmitVertex();\n"
 									 "	}\n"
 									 "	EndPrimitive();\n"
@@ -144,6 +148,9 @@ class test_window: public koku::opengl::windowCallback
 									 "	{\n"
 									 "		gl_Position = CameraMatrix[0] * vec4(Position_geo[i] + vec3(0,0,0.25), 1.0);\n" //again doesn't matter which ModelViewMatrix_geo (should be all the same)
 									 "		Color_fr = Color_geo[i] + vec3(0,0,1);\n"
+									 "		if (i == 0) Distance = vec3(1,0,0);\n"
+									 "		else if (i == 1) Distance = vec3(0,1,0);\n"
+									 "		else Distance = vec3(0,0,1);\n"
 									 "		EmitVertex();\n"
 									 "	}\n"
 									 "	EndPrimitive();\n"
@@ -152,9 +159,11 @@ class test_window: public koku::opengl::windowCallback
 			my_shader.uploadFragment("#version 400\n"
 									 "layout(location = 0) out vec4 FragColor;\n"
 									 "in vec3 Color_fr;\n"
+									 "in vec3 Distance;\n"
 									 "void main()\n"
 									 "{\n"
-									 "	FragColor = vec4(Color_fr, 1.0);\n"
+									 "	float D = clamp(min(min(Distance.x, Distance.y), Distance.z) / 0.08, 0, 1);\n"
+									 "	FragColor = vec4(D,D,D,1) * vec4(Color_fr, 1.0);\n"
 									 "}\n");
 
 			my_shader.compile();
@@ -169,7 +178,7 @@ class test_window: public koku::opengl::windowCallback
 							  //calculate look up at gpu
 							  "	vec3 from = camera_pos;\n" //from to doesn't work right ? no idea why
 							  "	vec3 to   = camera_look_at_pos;\n"
-							  "	vec3 dir  = normalize(to - from);\n"
+							  "	vec3 dir  = normalize(to - from);\n" //could be a "normal" for collisions detection
 							  "	vec3 up   = vec3(0,1,0);\n"
 							  "	vec3 right= cross(dir, up);\n"
 							  "	up = cross(dir, right);\n"
@@ -199,26 +208,31 @@ class test_window: public koku::opengl::windowCallback
 			my_window.update();
 
 			my_window.begin();
+
 				glClearColor(1,1,1,1);
-				glClear(GL_COLOR_BUFFER_BIT);
-				glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ); //uhm no lights yet
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				glEnable(GL_DEPTH_TEST);
+
+				static int frame = 0;
+				frame = frame + 1;
+
+				GLfloat pos[3] = {std::cos(frame/100.0f)*10.0f, 10, std::sin(frame/100.0f)*10.0f};
+				my_compute.set(&my_camera_pos, 3, 1, pos);
+
+				my_compute.begin();
+					//my_compute.bind(my_buffer); //binds the buffer to storage buffer block binding=0..n
+					//my_compute.execute(1,1,1);
+					my_buffer.execute(&my_compute, 1, 1, 1); //this also binds for my_buffer.render().. somehow stupid..
+				my_compute.end();
+
+				my_shader.begin();
+					//my_shader.bind(my_buffer); //binds the buffers to uniform block binding=0..n
+					my_buffer.render(4, 8); //uses bindings of last my_buffer.execute() for uniform_buffer shader_storage_buffer ! .. not that nice
+				my_shader.end();
+
+				my_window.flip(1000/30); //max. 30Hz
+
 			my_window.end();
-
-			static int frame = 0;
-			frame = frame + 1;
-
-			GLfloat pos[3] = {std::cos(frame/100.0f)*10.0f, 10, std::sin(frame/100.0f)*10.0f};
-			my_compute.set(&my_camera_pos, 3, 1, pos); //will force to recheck my_camera_pos id ! not good !!
-
-			my_compute.begin();
-				my_buffer.execute(&my_compute, 1, 1, 1); //this also binds for my_buffer.render().. somehow stupid..
-			my_compute.end();
-
-			my_shader.begin();
-				my_buffer.render(4, 8); //uses bindings of last my_buffer.execute() for uniform_buffer shader_storage_buffer ! .. not that nice
-			my_shader.end();
-
-			my_window.flip(1000/30); //max. 30Hz
 			return run;
 		}
 };
