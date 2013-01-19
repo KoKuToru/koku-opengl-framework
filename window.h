@@ -68,6 +68,7 @@ namespace koku
 		};
 
 		class shader_uniform;
+		class texture;
 		class shader
 		{
 			friend class compute;
@@ -109,6 +110,8 @@ namespace koku
 				void set(shader_uniform* uniform, GLfloat value);
 				void set(shader_uniform* uniform, GLint value);
 				void set(shader_uniform* uniform, GLuint value);
+
+				void set(shader_uniform* uniform, texture* value);
 		};
 
 		class shader_uniform
@@ -150,7 +153,27 @@ namespace koku
 				void set(shader_uniform* uniform, GLint value);
 				void set(shader_uniform* uniform, GLuint value);
 
+				void set(shader_uniform* uniform, texture* value);
+
 				void execute(int num_groups_x, int num_groups_y, int num_groups_z); //glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+		};
+
+		class texture
+		{
+			friend class shader;
+
+			private:
+				window* win;
+				GLuint id;
+				int w;
+				int h;
+
+			public:
+				texture(window* win);
+				~texture();
+
+				void upload(const char* image, int width, int height, int bytes_per_pixel);
+				void upload(const float* image, int width, int height, int bytes_per_pixel);
 		};
 	}
 }
