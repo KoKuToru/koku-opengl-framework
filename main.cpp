@@ -15,6 +15,8 @@ class test_window: public koku::opengl::windowCallback
 		koku::opengl::shader my_shader;
 		koku::opengl::shader_uniform my_camera_pos;
 		koku::opengl::compute my_compute;
+		koku::opengl::texture my_texture;
+		koku::opengl::shader_uniform my_texture_pos;
 		bool run;
 
 	protected:
@@ -25,7 +27,7 @@ class test_window: public koku::opengl::windowCallback
 		}
 
 	public:
-		test_window(): my_window(this, "test", 640, 480, true), my_buffer(&my_window), my_shader(&my_window), my_camera_pos("camera_pos"), my_compute(&my_window), run(true)
+		test_window(): my_window(this, "test", 640, 480, true), my_buffer(&my_window), my_shader(&my_window), my_camera_pos("camera_pos"), my_compute(&my_window), my_texture(&my_window), my_texture_pos("texture"), run(true)
 		{
 			const float vertex[] =
 			{
@@ -40,17 +42,17 @@ class test_window: public koku::opengl::windowCallback
 				1*0.8, -1*0.8, 1 //right bottom
 			};
 
-			const float color[] =
+			const float uv[] =
 			{
-				1,0,0,
-				1,0,0,
-				1,0,0,
-				1,0,0,
+				0,0,
+				1,0,
+				1,1,
+				0,1,
 
-				0,1,0,
-				0,1,0,
-				0,1,0,
-				0,1,0
+				0,0,
+				1,0,
+				1,1,
+				0,1
 			};
 
 			const float camera_matrix[] =
@@ -66,33 +68,42 @@ class test_window: public koku::opengl::windowCallback
 				0,1,3,2,0+4,1+4,3+4,2+4
 			};
 
+			const char texture[] =
+			{
+				-1,0,0,	-1,0,0,	-1,0,0,	-1,0,0,
+				-1,0,0,	0,-1,0,	0,0,0,	-1,0,0,
+				-1,0,0,	0,0,0,	0,-1,0,	-1,0,0,
+				-1,0,0,	-1,0,0,	-1,0,0,	-1,0,0
+			}; //4x4 texture
+
 			my_buffer.upload(false,        vertex, 8*3, 3);
-			my_buffer.upload(false,         color, 8*3, 3);
+			my_buffer.upload(false,            uv, 8*2, 2);
 			my_buffer.upload(false, camera_matrix, 4*4, 1); //gets calculated by compute_shader ;)
 			my_buffer.upload(true,          index, 8*1, 1);
+			my_texture.upload((const unsigned char*)texture, 4, 4, 3);
 
 			my_shader.uploadVertex("#version 400\n"
 								   "layout(location = 0) in vec3 Position;\n"
-								   "layout(location = 1) in vec3 Color;\n"
+								   "layout(location = 1) in vec2 UV;\n"
 								   "out vec3 Position_tc;\n"
-								   "out vec3 Color_tc;\n"
+								   "out vec2 UV_tc;\n"
 								   "void main()\n"
 								   "{\n"
 								   "	Position_tc = Position;\n" //pass position to tesslelation control shader
-								   "	Color_tc = Color;\n"
+								   "	UV_tc = UV;\n"
 								   "}\n");
 
 			my_shader.uploadTessellationControl("#version 400\n"
 												"layout(vertices = 4) out;"
 												"in vec3 Position_tc[];\n"
-												"in vec3 Color_tc[];\n"
+												"in vec2 UV_tc[];\n"
 												"out vec3 Position_te[];\n"
-												"out vec3 Color_te[];\n"
+												"out vec2 UV_te[];\n"
 												"#define ID gl_InvocationID\n"
 												"void main()\n"
 												"{\n"
 												"	Position_te[ID] = Position_tc[ID];\n"
-												"	Color_te[ID] = Color_tc[ID];\n"
+												"	UV_te[ID] = UV_tc[ID];\n"
 												"	if (ID != 0)\n"
 												"	{\n"
 												"		gl_TessLevelInner[0] = 4;\n" //tes-level
@@ -108,8 +119,8 @@ class test_window: public koku::opengl::windowCallback
 			my_shader.uploadTessellationEval("#version 400\n"
 											 "layout(quads, equal_spacing) in;\n"
 											 "in vec3 Position_te[];\n"
-											 "in vec3 Color_te[];\n"
-											 "out vec3 Color_geo;\n"
+											 "in vec2 UV_te[];\n"
+											 "out vec2 UV_geo;\n"
 											 "out vec3 Position_geo;\n"
 											 "void main()\n"
 											 "{\n"
@@ -117,9 +128,9 @@ class test_window: public koku::opengl::windowCallback
 											 "	vec3 a = mix(Position_te[0], Position_te[1], u);\n"
 											 "	vec3 b = mix(Position_te[2], Position_te[3], u);\n"
 											 "	Position_geo = mix(a, b, v);\n" //pass to geometry shader
-											 "	a = mix(Color_te[0], Color_te[1], u);\n"
-											 "	b = mix(Color_te[2], Color_te[3], u);\n"
-											 "	Color_geo = mix(a, b, v);\n"
+											 "	vec2 a2 = mix(UV_te[0], UV_te[1], u);\n"
+											 "	vec2 b2 = mix(UV_te[2], UV_te[3], u);\n"
+											 "	UV_geo = mix(a2, b2, v);\n"
 											 "}\n");
 
 			my_shader.uploadGeometry("#version 430\n"
@@ -127,8 +138,8 @@ class test_window: public koku::opengl::windowCallback
 									 "layout(triangles) in;\n" //can't use quads
 									 "layout(triangle_strip, max_vertices=24) out;\n"
 									 "in vec3 Position_geo[];\n"
-									 "in vec3 Color_geo[];\n"
-									 "out vec3 Color_fr;\n"
+									 "in vec2 UV_geo[];\n"
+									 "out vec2 UV_fr;\n"
 									 "out vec3 Distance;\n"
 									 "layout (binding=2) uniform result { mat4 CameraMatrix[]; }; \n" //gets data from compute shader
 									 "void main()\n"
@@ -136,7 +147,7 @@ class test_window: public koku::opengl::windowCallback
 									 "	for(int i = 0; i < 3; i++)\n"
 									 "	{\n"
 									 "		gl_Position = CameraMatrix[0] * vec4(Position_geo[i], 1.0);\n" //again doesn't matter which ModelViewMatrix_geo (should be all the same)
-									 "		Color_fr = Color_geo[i];\n"
+									 "		UV_fr = UV_geo[i];\n"
 									 "		if (i == 0) Distance = vec3(1,0,0);\n"
 									 "		else if (i == 1) Distance = vec3(0,1,0);\n"
 									 "		else Distance = vec3(0,0,1);\n"
@@ -147,7 +158,7 @@ class test_window: public koku::opengl::windowCallback
 									 "	for(int i = 0; i < 3; i++)\n"
 									 "	{\n"
 									 "		gl_Position = CameraMatrix[0] * vec4(Position_geo[i] + vec3(0,0,0.25), 1.0);\n" //again doesn't matter which ModelViewMatrix_geo (should be all the same)
-									 "		Color_fr = Color_geo[i] + vec3(0,0,1);\n"
+									 "		UV_fr = UV_geo[i];\n"
 									 "		if (i == 0) Distance = vec3(1,0,0);\n"
 									 "		else if (i == 1) Distance = vec3(0,1,0);\n"
 									 "		else Distance = vec3(0,0,1);\n"
@@ -157,13 +168,14 @@ class test_window: public koku::opengl::windowCallback
 									 "}\n");
 
 			my_shader.uploadFragment("#version 400\n"
+									 "uniform sampler2D texture;\n"
 									 "layout(location = 0) out vec4 FragColor;\n"
-									 "in vec3 Color_fr;\n"
+									 "in vec2 UV_fr;\n"
 									 "in vec3 Distance;\n"
 									 "void main()\n"
 									 "{\n"
 									 "	float D = clamp(min(min(Distance.x, Distance.y), Distance.z) / 0.08, 0, 1);\n"
-									 "	FragColor = vec4(D,D,D,1) * vec4(Color_fr, 1.0);\n"
+									 "	FragColor = vec4(D,D,D,1) * texture2D(texture, UV_fr);\n"
 									 "}\n");
 
 			my_shader.compile();
@@ -218,6 +230,7 @@ class test_window: public koku::opengl::windowCallback
 
 				GLfloat pos[3] = {std::cos(frame/100.0f)*10.0f, 10, std::sin(frame/100.0f)*10.0f};
 				my_compute.set(&my_camera_pos, 3, 1, pos);
+				my_shader.set(&my_texture_pos, &my_texture); //not good this way ?
 
 				my_compute.begin();
 					my_compute.bind(&my_buffer); //binds the buffer to storage buffer block binding=0..n
