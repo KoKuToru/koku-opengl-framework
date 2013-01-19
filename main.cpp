@@ -220,14 +220,13 @@ class test_window: public koku::opengl::windowCallback
 				my_compute.set(&my_camera_pos, 3, 1, pos);
 
 				my_compute.begin();
-					//my_compute.bind(my_buffer); //binds the buffer to storage buffer block binding=0..n
-					//my_compute.execute(1,1,1);
-					my_buffer.execute(&my_compute, 1, 1, 1); //this also binds for my_buffer.render().. somehow stupid..
+					my_compute.bind(&my_buffer); //binds the buffer to storage buffer block binding=0..n
+					my_compute.execute(1,1,1);
 				my_compute.end();
 
 				my_shader.begin();
-					//my_shader.bind(my_buffer); //binds the buffers to uniform block binding=0..n
-					my_buffer.render(4, 8); //uses bindings of last my_buffer.execute() for uniform_buffer shader_storage_buffer ! .. not that nice
+					my_shader.bind(&my_buffer); //binds the buffers to uniform block binding=0..n
+					my_buffer.render(4, 8);
 				my_shader.end();
 
 				my_window.flip(1000/30); //max. 30Hz

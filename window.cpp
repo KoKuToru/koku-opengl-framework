@@ -625,13 +625,19 @@ void compute::execute(int num_groups_x, int num_groups_y, int num_groups_z)
 	glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
 }
 
-void buffer::execute(compute* compute_shader, int num_groups_x, int num_groups_y, int num_groups_z)
+void compute::bind(buffer *bind_buffe)
 {
-	for(int i = 0; i < uploads.size(); ++i)
+	for(int i = 0; i < bind_buffe->uploads.size(); ++i)
 	{
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, i, uploads[i]);
-		glBindBufferBase(GL_UNIFORM_BUFFER, i, uploads[i]); //uhm ?
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, i, bind_buffe->uploads[i]);
 	}
-
-	compute_shader->execute(num_groups_x, num_groups_y, num_groups_z);
 }
+
+void shader::bind(buffer *bind_buffe)
+{
+	for(int i = 0; i < bind_buffe->uploads.size(); ++i)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, i, bind_buffe->uploads[i]);
+	}
+}
+

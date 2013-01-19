@@ -45,9 +45,13 @@ namespace koku
 				void end();
 		};
 
+		class shader;
 		class compute;
 		class buffer
 		{
+			friend class shader;
+			friend class compute;
+
 			private:
 				window* win;
 				GLuint id;
@@ -61,8 +65,6 @@ namespace koku
 				void upload(bool element, const float* data, int size, int item_size);
 				void upload(bool element, const unsigned short* data, int size, int item_size);
 				void render(int vertex_per_face, int count);
-
-				void execute(compute* compute_shader, int num_groups_x, int num_groups_y, int num_groups_z);
 		};
 
 		class shader_uniform;
@@ -97,6 +99,8 @@ namespace koku
 
 				void begin();
 				void end();
+
+				void bind(buffer* bind_buffe);
 
 				void set(shader_uniform *uniform, int item_count, int count, GLfloat* value);
 				void set(shader_uniform* uniform, int item_count, int count, GLint* value);
@@ -135,6 +139,8 @@ namespace koku
 
 				void begin();
 				void end();
+
+				void bind(buffer* bind_buffe);
 
 				void set(shader_uniform *uniform, int item_count, int count, GLfloat* value);
 				void set(shader_uniform* uniform, int item_count, int count, GLint* value);
