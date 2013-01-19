@@ -173,6 +173,7 @@ namespace koku
 				~texture();
 
 				void upload(const char* image, int width, int height, int bytes_per_pixel);
+				void upload(const unsigned char* image, int width, int height, int bytes_per_pixel);
 				void upload(const float* image, int width, int height, int bytes_per_pixel);
 		};
 	}

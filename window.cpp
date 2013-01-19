@@ -661,6 +661,10 @@ void texture::upload(const char *image, int width, int height, int bytes_per_pix
 	h = height;
 	win->begin();
 	glBindTexture(GL_TEXTURE_2D, id);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+	glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+	glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
 	switch(bytes_per_pixel)
 	{
 		case 1:
@@ -679,6 +683,40 @@ void texture::upload(const char *image, int width, int height, int bytes_per_pix
 			//error !
 			break;
 	}
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	win->end();
+}
+
+void texture::upload(const unsigned char *image, int width, int height, int bytes_per_pixel)
+{
+	w = width;
+	h = height;
+	win->begin();
+	glBindTexture(GL_TEXTURE_2D, id);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+	glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+	glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+	switch(bytes_per_pixel)
+	{
+		case 1:
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, image);
+			break;
+		case 2:
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, w, h, 0, GL_RG, GL_UNSIGNED_BYTE, image);
+			break;
+		case 3:
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+			break;
+		case 4:
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+			break;
+		default:
+			//error !
+			break;
+	}
+	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	win->end();
 }
@@ -688,6 +726,10 @@ void texture::upload(const float *image, int width, int height, int bytes_per_pi
 	w = width;
 	h = height;
 	glBindTexture(GL_TEXTURE_2D, id);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+	glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+	glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
 	switch(bytes_per_pixel)
 	{
 		case 1:
@@ -717,5 +759,10 @@ void compute::set(shader_uniform* uniform, texture* value)
 
 void shader::set(shader_uniform* uniform, texture* value)
 {
-	set(uniform, value->id);
+	//umh
+	win->begin();
+	glActiveTexture(GL_TEXTURE0/*+id*/);
+	glBindTexture(GL_TEXTURE_2D, value->id);
+	win->end();
+	set(uniform, /*GL_TEXTURE*/0/*+id*/);
 }
