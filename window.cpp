@@ -684,8 +684,6 @@ void texture::upload(const char *image, int width, int height, int bytes_per_pix
 			break;
 	}
 	glGenerateMipmap(GL_TEXTURE_2D);
-	glTexParameteri( GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri( GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	win->end();
 }
@@ -719,8 +717,6 @@ void texture::upload(const unsigned char *image, int width, int height, int byte
 			break;
 	}
 	glGenerateMipmap(GL_TEXTURE_2D);
-	glTexParameteri( GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri( GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	win->end();
 }
