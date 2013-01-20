@@ -379,7 +379,7 @@ class test_window: public koku::opengl::windowCallback
 												"	UV_te[ID] = UV_tc[ID];\n"
 												"	if (ID != 0)\n"
 												"	{\n"
-												"		gl_TessLevelInner[0] = 32;\n" //tes-level
+												"		gl_TessLevelInner[0] = 16;\n" //tes-level
 												//"		gl_TessLevelInner[0] = int(int(gl_TessLevelInner[0])/2)*2;\n" //only 1,2,4,6, ...
 												"		gl_TessLevelInner[1] = gl_TessLevelInner[0];\n"
 												"		gl_TessLevelOuter[0] = gl_TessLevelInner[0];\n"
@@ -410,8 +410,10 @@ class test_window: public koku::opengl::windowCallback
 									 //"layout(quads) in;\n"
 									 "layout(triangles) in;\n" //can't use quads
 									 "layout(triangle_strip, max_vertices=24) out;\n"
+									 "uniform sampler2D texture;\n" //use same from fragment ?
 									 "in vec3 Position_geo[];\n"
 									 "in vec2 UV_geo[];\n"
+									 "out vec4 Vertex;\n"
 									 "out vec2 UV_fr;\n"
 									 "out vec3 Distance;\n"
 									 "layout (binding=2) uniform result { mat4 CameraMatrix[]; }; \n" //gets data from compute shader
@@ -419,7 +421,8 @@ class test_window: public koku::opengl::windowCallback
 									 "{\n"
 									 "	for(int i = 0; i < 3; i++)\n"
 									 "	{\n"
-									 "		gl_Position = CameraMatrix[0] * vec4(Position_geo[i], 1.0);\n" //again doesn't matter which ModelViewMatrix_geo (should be all the same)
+									 "		Vertex = vec4(Position_geo[i], 1);\n"
+									 "		gl_Position = CameraMatrix[0] * Vertex;\n" //again doesn't matter which ModelViewMatrix_geo (should be all the same)
 									 "		UV_fr = UV_geo[i];\n"
 									 "		if (i == 0) Distance = vec3(1,0,0);\n"
 									 "		else if (i == 1) Distance = vec3(0,1,0);\n"
@@ -430,7 +433,10 @@ class test_window: public koku::opengl::windowCallback
 									 //Dup it
 									 "	for(int i = 0; i < 3; i++)\n"
 									 "	{\n"
-									 "		gl_Position = CameraMatrix[0] * vec4(Position_geo[i] + vec3(0,0,0.25), 1.0);\n" //again doesn't matter which ModelViewMatrix_geo (should be all the same)
+									 "		vec4 dv = textureLod(texture, UV_geo[i], 2);\n"
+									 "		float df = 0.30*dv.x + 0.59*dv.y + 0.11*dv.z;\n"
+									 "		Vertex = vec4(Position_geo[i] + vec3(0,0,-0.5) - vec3(0,0,0.15)*df, 1);\n"
+									 "		gl_Position = CameraMatrix[0] * Vertex;\n" //again doesn't matter which ModelViewMatrix_geo (should be all the same)
 									 "		UV_fr = UV_geo[i];\n"
 									 "		if (i == 0) Distance = vec3(1,0,0);\n"
 									 "		else if (i == 1) Distance = vec3(0,1,0);\n"
@@ -443,16 +449,17 @@ class test_window: public koku::opengl::windowCallback
 			my_shader.uploadFragment("#version 400\n"
 									 "uniform sampler2D texture;\n"
 									 "layout(location = 0) out vec4 FragColor;\n"
+									 "in vec4 Vertex;\n"
 									 "in vec2 UV_fr;\n"
 									 "in vec3 Distance;\n"
 									 /* CUSTOM TEXTURE FITLER */
-									 "vec4 texture2D_Filter(sampler2D texture_sampler, vec2 texture_uv)\n"
+									 "vec4 texture2D_Filter(sampler2D texture_sampler, vec2 texture_uv, float width)\n"
 									 "{\n"
 									 "	ivec2 texture_size = textureSize(texture_sampler, int(textureQueryLod(texture_sampler, texture_uv).x));\n"
 									 "	vec2 texel_size = vec2(1.0, 1.0)/texture_size;\n"
 									 "	vec2 texture_fract = (2.0*fract(texture_uv * texture_size)) - vec2(1.0, 1.0);\n" // -1 .. 1
 
-									 "float bw = 0.1;\n"
+									 "float bw = 0.1*width;\n"
 									 "vec4 c1 = texture2D(texture_sampler, texture_uv + bw*texel_size*vec2( 0, 0));\n"
 									 "vec4 c2 = texture2D(texture_sampler, texture_uv + bw*texel_size*vec2(-1, 0));\n"
 									 "vec4 c3 = texture2D(texture_sampler, texture_uv + bw*texel_size*vec2( 1, 0));\n"
@@ -465,7 +472,7 @@ class test_window: public koku::opengl::windowCallback
 
 									 "vec4 rc1 = (c1+c2+c3+c4+c5+c6+c7+c8+c9)/9;\n"
 
-									 "bw = 0.25;\n"
+									 "bw = 0.25*width;\n"
 									 "c6 = texture2D(texture_sampler, texture_uv + bw*texel_size*vec2(-1, 1));\n"
 									 "c7 = texture2D(texture_sampler, texture_uv + bw*texel_size*vec2( 1, 1));\n"
 									 "c8 = texture2D(texture_sampler, texture_uv + bw*texel_size*vec2(-1,-1));\n"
@@ -473,7 +480,7 @@ class test_window: public koku::opengl::windowCallback
 
 									 "vec4 rc2 = (c6+c7+c8+c9)/4;\n"
 
-									 "bw = 0.15;\n"
+									 "bw = 0.15*width;\n"
 									 "c2 = texture2D(texture_sampler, texture_uv + bw*texel_size*vec2(-1, 0));\n"
 									 "c3 = texture2D(texture_sampler, texture_uv + bw*texel_size*vec2( 1, 0));\n"
 									 "c4 = texture2D(texture_sampler, texture_uv + bw*texel_size*vec2( 0,-1));\n"
@@ -484,7 +491,7 @@ class test_window: public koku::opengl::windowCallback
 									 "vec4 mix_color = min(rc1, (rc2 + rc3)/2);"
 
 									 //Search best color ;)
-									 "bw = 0.5;\n"
+									 "bw = 0.5*width;\n"
 									 "c1 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2( 0, 0))*texture_size), 0);\n"
 									 "c2 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2(-1, 0))*texture_size), 0);\n"
 									 "c3 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2( 1, 0))*texture_size), 0);\n"
@@ -532,9 +539,10 @@ class test_window: public koku::opengl::windowCallback
 									 /* END FILTER */
 									 "void main()\n"
 									 "{\n"
-									 "	float D = clamp(min(min(Distance.x, Distance.y), Distance.z) / 0.01, 0, 1);\n"
-									 //"	FragColor = vec4(D,D,D,1) * texture2D_Filter(texture, UV_fr);\n"
-									 "	FragColor = texture2D_Filter(texture, UV_fr);\n"
+									 "	float f = 250*fwidth(Vertex.xyz);\n"
+									 "	float D = clamp(min(min(Distance.x, Distance.y), Distance.z) / (f/250*15), 0.9, 1.0);\n"
+									 "	FragColor = vec4(D,D,D,1) * texture2D_Filter(texture, UV_fr, f);\n"
+									 //"	FragColor = texture2D_Filter(texture, UV_fr, f);\n"
 									 //"	FragColor = texture2D(texture, UV_fr);\n"
 									 //"	FragColor = texelFetch(texture, ivec2(UV_fr*32), 0);"
 									 "}\n");
@@ -589,7 +597,7 @@ class test_window: public koku::opengl::windowCallback
 				static int frame = -1000;
 				frame = frame + 1;
 
-				GLfloat pos[3] = {std::cos(frame/100.0f)*2.0f, 2, std::sin(frame/200.0f)*2.0f};
+				GLfloat pos[3] = {std::cos(frame/250.0f)*4.0f, 2, 4+std::cos(frame/100.0f)*2.0f + std::sin(frame/250.0f)*4.0f};
 				my_compute.set(&my_camera_pos, 3, 1, pos);
 				my_shader.set(&my_texture_pos, &my_texture); //not good this way ?
 
