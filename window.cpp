@@ -665,6 +665,7 @@ void texture::upload(const char *image, int width, int height, int bytes_per_pix
 	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 	glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
 	glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+
 	switch(bytes_per_pixel)
 	{
 		case 1:
@@ -683,7 +684,10 @@ void texture::upload(const char *image, int width, int height, int bytes_per_pix
 			//error !
 			break;
 	}
-	glGenerateMipmap(GL_TEXTURE_2D);
+	if (image != 0)
+	{
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
 	glBindTexture(GL_TEXTURE_2D, 0);
 	win->end();
 }
@@ -698,6 +702,7 @@ void texture::upload(const unsigned char *image, int width, int height, int byte
 	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 	glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
 	glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+
 	switch(bytes_per_pixel)
 	{
 		case 1:
@@ -716,7 +721,10 @@ void texture::upload(const unsigned char *image, int width, int height, int byte
 			//error !
 			break;
 	}
-	glGenerateMipmap(GL_TEXTURE_2D);
+	if (image != 0)
+	{
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
 	glBindTexture(GL_TEXTURE_2D, 0);
 	win->end();
 }
@@ -730,6 +738,7 @@ void texture::upload(const float *image, int width, int height, int bytes_per_pi
 	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 	glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
 	glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+
 	switch(bytes_per_pixel)
 	{
 		case 1:
@@ -748,7 +757,10 @@ void texture::upload(const float *image, int width, int height, int bytes_per_pi
 			//error !
 			break;
 	}
-	glBindTexture(GL_TEXTURE_2D, 0);
+	if (image != 0)
+	{
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
 	win->end();
 }
 
