@@ -17,6 +17,8 @@ class test_window: public koku::opengl::windowCallback
 		koku::opengl::compute my_compute;
 		koku::opengl::texture my_texture;
 		koku::opengl::shader_uniform my_texture_pos;
+		koku::opengl::shader_uniform my_eye_shift;
+
 		bool run;
 
 	protected:
@@ -27,7 +29,7 @@ class test_window: public koku::opengl::windowCallback
 		}
 
 	public:
-		test_window(): my_window(this, "test", 1024, 768, true), my_buffer(&my_window), my_shader(&my_window), my_camera_pos("camera_pos"), my_compute(&my_window), my_texture(&my_window), my_texture_pos("texture"), run(true)
+		test_window(): my_window(this, "test", 1024, 768, true), my_buffer(&my_window), my_shader(&my_window), my_camera_pos("camera_pos"), my_compute(&my_window), my_texture(&my_window), my_texture_pos("texture"), my_eye_shift("eye_shift"), run(true)
 		{
 			const float vertex[] =
 			{
@@ -411,6 +413,7 @@ class test_window: public koku::opengl::windowCallback
 									 "layout(triangles) in;\n" //can't use quads
 									 "layout(triangle_strip, max_vertices=24) out;\n"
 									 "uniform sampler2D texture;\n" //use same from fragment ?
+									 "uniform float eye_shift;\n"
 									 "in vec3 Position_geo[];\n"
 									 "in vec2 UV_geo[];\n"
 									 "out vec4 Vertex;\n"
@@ -419,10 +422,20 @@ class test_window: public koku::opengl::windowCallback
 									 "layout (binding=2) uniform result { mat4 CameraMatrix[]; }; \n" //gets data from compute shader
 									 "void main()\n"
 									 "{\n"
+									 /* PROJECTION */
+									 "	float h = 1.0/tan(45*0.0087266);\n" //FOV
+									 "	float zNear = 0.1;\n"
+									 "	float zFar  = 1000.0; \n"
+									 "	float frustrumLength = zFar - zNear;\n"
+									 "	mat4 ProjectionMatrix = mat4(vec4(h, 0, 0, 0),\n"
+									 "								 vec4(0, h, 0, 0),\n"
+									 "								 vec4(0, 0, -(zFar + zNear)/frustrumLength, -1),\n"
+									 "								 vec4(0, 0, -2.0*(zNear * zFar)/frustrumLength, 0));\n"
+									 /* PROJECTION END */
 									 "	for(int i = 0; i < 3; i++)\n"
 									 "	{\n"
 									 "		Vertex = vec4(Position_geo[i], 1);\n"
-									 "		gl_Position = CameraMatrix[0] * Vertex;\n" //again doesn't matter which ModelViewMatrix_geo (should be all the same)
+									 "		gl_Position = ProjectionMatrix * (CameraMatrix[0] * Vertex + vec4(eye_shift, 0, 0, 1));\n" //again doesn't matter which ModelViewMatrix_geo (should be all the same)
 									 "		UV_fr = UV_geo[i];\n"
 									 "		if (i == 0) Distance = vec3(1,0,0);\n"
 									 "		else if (i == 1) Distance = vec3(0,1,0);\n"
@@ -436,7 +449,7 @@ class test_window: public koku::opengl::windowCallback
 									 "		vec4 dv = textureLod(texture, UV_geo[i], 2);\n"
 									 "		float df = 0.30*dv.x + 0.59*dv.y + 0.11*dv.z;\n"
 									 "		Vertex = vec4(Position_geo[i] + vec3(0,0,-0.5) - vec3(0,0,0.15)*df, 1);\n"
-									 "		gl_Position = CameraMatrix[0] * Vertex;\n" //again doesn't matter which ModelViewMatrix_geo (should be all the same)
+									 "		gl_Position = ProjectionMatrix * (CameraMatrix[0] * Vertex + vec4(eye_shift, 0, 0, 1));\n" //again doesn't matter which ModelViewMatrix_geo (should be all the same)
 									 "		UV_fr = UV_geo[i];\n"
 									 "		if (i == 0) Distance = vec3(1,0,0);\n"
 									 "		else if (i == 1) Distance = vec3(0,1,0);\n"
@@ -448,6 +461,7 @@ class test_window: public koku::opengl::windowCallback
 
 			my_shader.uploadFragment("#version 400\n"
 									 "uniform sampler2D texture;\n"
+									 "uniform float eye_shift;\n"
 									 "layout(location = 0) out vec4 FragColor;\n"
 									 "in vec4 Vertex;\n"
 									 "in vec2 UV_fr;\n"
@@ -539,12 +553,23 @@ class test_window: public koku::opengl::windowCallback
 									 /* END FILTER */
 									 "void main()\n"
 									 "{\n"
+									 "	if (eye_shift != 0)\n"
+									 "	{\n"
+									 "		if (eye_shift > 0)\n"
+									 "		{\n"
+									 "			if (int(mod(gl_FragCoord.y, 2)) == 0) discard;\n"
+									 "		}\n"
+									 "		else\n"
+									 "		{\n"
+									 "			if (int(mod(gl_FragCoord.y, 2)) == 1) discard;\n"
+									 "		}\n"
+									 "	}\n"
 									 "	float f = 250*fwidth(Vertex.xyz);\n"
 									 "	float D = clamp(min(min(Distance.x, Distance.y), Distance.z) / (f/250*15), 0.9, 1.0);\n"
 									 "	FragColor = vec4(D,D,D,1) * texture2D_Filter(texture, UV_fr, f);\n"
 									 //"	FragColor = texture2D_Filter(texture, UV_fr, f);\n"
 									 //"	FragColor = texture2D(texture, UV_fr);\n"
-									 //"	FragColor = texelFetch(texture, ivec2(UV_fr*32), 0);"
+									 //"	FragColor = texelFetch(texture, ivec2(UV_fr*64), 0);"
 									 "}\n");
 
 			my_shader.compile();
@@ -578,7 +603,7 @@ class test_window: public koku::opengl::windowCallback
 							  "								 vec4(0, 0, -(zFar + zNear)/frustrumLength, -1),\n"
 							  "								 vec4(0, 0, -2.0*(zNear * zFar)/frustrumLength, 0));\n"
 							  /* PROJECTION END */
-							  "matrix[gl_GlobalInvocationID.x] = ProjectionMatrix * matrix[gl_GlobalInvocationID.x];"
+							  //"matrix[gl_GlobalInvocationID.x] = ProjectionMatrix * matrix[gl_GlobalInvocationID.x];" //done in geometry shader
 							  "}\n");
 
 			my_compute.compile();
@@ -608,7 +633,10 @@ class test_window: public koku::opengl::windowCallback
 
 				my_shader.begin();
 					my_shader.bind(&my_buffer); //binds the buffers to uniform block binding=0..n
+					//my_shader.set(&my_eye_shift, -0.02f);
 					my_buffer.render(4, 8);
+					//my_shader.set(&my_eye_shift,  0.02f);
+					//my_buffer.render(4, 8);
 				my_shader.end();
 
 				my_window.flip(1000/30); //max. 30Hz
