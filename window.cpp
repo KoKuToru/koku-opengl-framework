@@ -819,8 +819,8 @@ void rendertarget::bind(texture *my_tex, int tex_count)
 		glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);
 		for(int i = 0; i < tex_count; ++i)
 		{
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0+i, GL_TEXTURE_2D, my_tex[0].id, 0);
-			textures.push_back(my_tex[0].id);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0+i, GL_TEXTURE_2D, my_tex[i].id, 0);
+			textures.push_back(my_tex[i].id);
 		}
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo_id);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
