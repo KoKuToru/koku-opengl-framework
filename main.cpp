@@ -18,6 +18,8 @@ class test_window: public koku::opengl::windowCallback
 		koku::opengl::texture my_texture;
 		koku::opengl::shader_uniform my_texture_pos;
 		koku::opengl::shader_uniform my_eye_shift;
+		koku::opengl::rendertarget my_target;
+		koku::opengl::texture my_target_texture;
 
 		bool run;
 
@@ -29,7 +31,18 @@ class test_window: public koku::opengl::windowCallback
 		}
 
 	public:
-		test_window(): my_window(this, "test", 1024, 768, true), my_buffer(&my_window), my_shader(&my_window), my_camera_pos("camera_pos"), my_compute(&my_window), my_texture(&my_window), my_texture_pos("texture"), my_eye_shift("eye_shift"), run(true)
+		test_window():
+			my_window(this, "test", 1024, 768, true),
+			my_buffer(&my_window),
+			my_shader(&my_window),
+			my_camera_pos("camera_pos"),
+			my_compute(&my_window),
+			my_texture(&my_window),
+			my_texture_pos("texture"),
+			my_eye_shift("eye_shift"),
+			my_target(&my_window),
+			my_target_texture(&my_window),
+			run(true)
 		{
 			const float vertex[] =
 			{
@@ -354,8 +367,9 @@ class test_window: public koku::opengl::windowCallback
 			my_buffer.upload(false, camera_matrix, 4*4, 1); //gets calculated by compute_shader ;)
 			my_buffer.upload(true,          index, 8*1, 1);
 			my_texture.upload((unsigned char*)texture, width, height, 3);
+			my_target_texture.upload((unsigned char*)0, 128, 128, 4); //empty texture
 
-			delete texture;
+			delete[] texture;
 
 			my_shader.uploadVertex("#version 400\n"
 								   "layout(location = 0) in vec3 Position;\n"
@@ -446,9 +460,9 @@ class test_window: public koku::opengl::windowCallback
 									 //Dup it
 									 "	for(int i = 0; i < 3; i++)\n"
 									 "	{\n"
-									 "		vec4 dv = textureLod(texture, UV_geo[i], 2);\n"
-									 "		float df = 0.30*dv.x + 0.59*dv.y + 0.11*dv.z;\n"
-									 "		Vertex = vec4(Position_geo[i] + vec3(0,0,-0.5) - vec3(0,0,0.15)*df, 1);\n"
+									 "		vec4 dv = textureLod(texture, UV_geo[i], 0);\n"
+									 "		float df = dv.w;\n"
+									 "		Vertex = vec4(Position_geo[i] + vec3(0,0,-0.5) - vec3(0,0,1)*df, 1);\n"
 									 "		gl_Position = ProjectionMatrix * (CameraMatrix[0] * Vertex + vec4(eye_shift, 0, 0, 1));\n" //again doesn't matter which ModelViewMatrix_geo (should be all the same)
 									 "		UV_fr = UV_geo[i];\n"
 									 "		if (i == 0) Distance = vec3(1,0,0);\n"
@@ -566,7 +580,7 @@ class test_window: public koku::opengl::windowCallback
 									 "	}\n"
 									 "	float f = 250*fwidth(Vertex.xyz);\n"
 									 "	float D = clamp(min(min(Distance.x, Distance.y), Distance.z) / (f/250*15), 0.9, 1.0);\n"
-									 "	FragColor = vec4(D,D,D,1) * texture2D_Filter(texture, UV_fr, f);\n"
+									 "	FragColor = vec4((vec4(D,D,D,1) * texture2D_Filter(texture, UV_fr, f)).xyz, gl_FragCoord.z);\n"
 									 //"	FragColor = texture2D_Filter(texture, UV_fr, f);\n"
 									 //"	FragColor = texture2D(texture, UV_fr);\n"
 									 //"	FragColor = texelFetch(texture, ivec2(UV_fr*64), 0);"
@@ -616,29 +630,58 @@ class test_window: public koku::opengl::windowCallback
 			my_window.begin();
 
 				glClearColor(1,1,1,1);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 				glEnable(GL_DEPTH_TEST);
 
 				static int frame = -1000;
 				frame = frame + 1;
 
-				GLfloat pos[3] = {std::cos(frame/250.0f)*4.0f, 2, 4+std::cos(frame/100.0f)*2.0f + std::sin(frame/250.0f)*4.0f};
-				my_compute.set(&my_camera_pos, 3, 1, pos);
-				my_shader.set(&my_texture_pos, &my_texture); //not good this way ?
+				//RENDER TO TEXTURE:
+				{
+					GLfloat pos[3] = {std::cos(frame/25.0f)*4.0f, 2, std::sin(frame/25.0f)*4.0f};
+					my_compute.set(&my_camera_pos, 3, 1, pos);
 
-				my_compute.begin();
-					my_compute.bind(&my_buffer); //binds the buffer to storage buffer block binding=0..n
-					my_compute.execute(1,1,1);
-				my_compute.end();
+					my_compute.begin();
+						my_compute.bind(&my_buffer); //binds the buffer to storage buffer block binding=0..n
+						my_compute.execute(1,1,1);
+					my_compute.end();
 
-				my_shader.begin();
-					my_shader.bind(&my_buffer); //binds the buffers to uniform block binding=0..n
-					//my_shader.set(&my_eye_shift, -0.02f);
-					my_buffer.render(4, 8);
-					//my_shader.set(&my_eye_shift,  0.02f);
-					//my_buffer.render(4, 8);
-				my_shader.end();
+					my_target.bind(&my_target_texture);
+					my_target.begin();
+						my_window.begin();
+						glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+						my_window.end();
+						my_shader.set(&my_texture_pos, &my_texture);
+						my_shader.begin();
+							my_shader.bind(&my_buffer); //binds the buffers to uniform block binding=0..n
+							//my_shader.set(&my_eye_shift, -0.02f);
+							my_buffer.render(4, 8);
+							//my_shader.set(&my_eye_shift,  0.02f);
+							//my_buffer.render(4, 8);
+						my_shader.end();
+					my_target.end();
+				}
+				//RENDER TO SCREEN:
+				{
+					GLfloat pos[3] = {std::cos(frame/250.0f)*4.0f, 2, 4+std::cos(frame/100.0f)*2.0f + std::sin(frame/250.0f)*4.0f};
+					my_compute.set(&my_camera_pos, 3, 1, pos);
 
+					my_compute.begin();
+						my_compute.bind(&my_buffer); //binds the buffer to storage buffer block binding=0..n
+						my_compute.execute(1,1,1);
+					my_compute.end();
+
+					my_window.begin();
+					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+					my_window.end();
+					my_shader.set(&my_texture_pos, &my_target_texture);
+					my_shader.begin();
+						my_shader.bind(&my_buffer); //binds the buffers to uniform block binding=0..n
+						//my_shader.set(&my_eye_shift, -0.02f);
+						my_buffer.render(4, 8);
+						//my_shader.set(&my_eye_shift,  0.02f);
+						//my_buffer.render(4, 8);
+					my_shader.end();
+				}
 				my_window.flip(1000/30); //max. 30Hz
 
 			my_window.end();
