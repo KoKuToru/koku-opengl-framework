@@ -833,7 +833,8 @@ void rendertarget::begin()
 	win->begin();
 	glGetIntegerv(GL_VIEWPORT, v_dim);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);
-	glViewport(0, 0, w, h);	win->end();
+	glViewport(0, 0, w, h);
+	win->end();
 }
 
 void rendertarget::end()

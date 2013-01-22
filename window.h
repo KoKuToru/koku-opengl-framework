@@ -188,7 +188,7 @@ namespace koku
 				int w;
 				int h;
 				std::vector<GLuint> textures;
-				GLint v_dim[2];
+				GLint v_dim[4];
 
 			public:
 				rendertarget(window* win);
