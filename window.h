@@ -158,9 +158,11 @@ namespace koku
 				void execute(int num_groups_x, int num_groups_y, int num_groups_z); //glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
 		};
 
+		class rendertarget;
 		class texture
 		{
 			friend class shader;
+			friend class rendertarget;
 
 			private:
 				window* win;
@@ -175,6 +177,27 @@ namespace koku
 				void upload(const char* image, int width, int height, int bytes_per_pixel);
 				void upload(const unsigned char* image, int width, int height, int bytes_per_pixel);
 				void upload(const float* image, int width, int height, int bytes_per_pixel);
+		};
+
+		class rendertarget
+		{
+			private:
+				window* win;
+				GLuint rbo_id;
+				GLuint fbo_id;
+				int w;
+				int h;
+				std::vector<GLuint> textures;
+				GLint v_dim[2];
+
+			public:
+				rendertarget(window* win);
+				~rendertarget();
+
+				void begin();
+				void end();
+
+				void bind(texture* my_tex, int tex_count=1);
 		};
 	}
 }
