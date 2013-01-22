@@ -483,7 +483,8 @@ class test_window: public koku::opengl::windowCallback
 									 /* CUSTOM TEXTURE FITLER */
 									 "vec4 texture2D_Filter(sampler2D texture_sampler, vec2 texture_uv, float width)\n"
 									 "{\n"
-									 "	ivec2 texture_size = textureSize(texture_sampler, int(textureQueryLod(texture_sampler, texture_uv).x));\n"
+									 "	int lod = int(textureQueryLod(texture_sampler, texture_uv).x);\n"
+									 "	ivec2 texture_size = textureSize(texture_sampler, lod);\n"
 									 "	vec2 texel_size = vec2(1.0, 1.0)/texture_size;\n"
 									 "	vec2 texture_fract = (2.0*fract(texture_uv * texture_size)) - vec2(1.0, 1.0);\n" // -1 .. 1
 
@@ -520,15 +521,15 @@ class test_window: public koku::opengl::windowCallback
 
 									 //Search best color ;)
 									 "bw = 0.5*width;\n"
-									 "c1 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2( 0, 0))*texture_size), 0);\n"
-									 "c2 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2(-1, 0))*texture_size), 0);\n"
-									 "c3 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2( 1, 0))*texture_size), 0);\n"
-									 "c4 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2( 0,-1))*texture_size), 0);\n"
-									 "c5 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2( 0, 1))*texture_size), 0);\n"
-									 "c6 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2(-1, 1))*texture_size), 0);\n"
-									 "c7 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2( 1, 1))*texture_size), 0);\n"
-									 "c8 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2(-1,-1))*texture_size), 0);\n"
-									 "c9 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2( 1,-1))*texture_size), 0);\n"
+									 "c1 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2( 0, 0))*texture_size), lod);\n"
+									 "c2 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2(-1, 0))*texture_size), lod);\n"
+									 "c3 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2( 1, 0))*texture_size), lod);\n"
+									 "c4 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2( 0,-1))*texture_size), lod);\n"
+									 "c5 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2( 0, 1))*texture_size), lod);\n"
+									 "c6 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2(-1, 1))*texture_size), lod);\n"
+									 "c7 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2( 1, 1))*texture_size), lod);\n"
+									 "c8 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2(-1,-1))*texture_size), lod);\n"
+									 "c9 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2( 1,-1))*texture_size), lod);\n"
 
 									 "vec4 best_color = c1;\n"
 									 "if (abs(length(mix_color-best_color)) > abs(length(mix_color-c2))) best_color = c2;\n"
@@ -539,27 +540,6 @@ class test_window: public koku::opengl::windowCallback
 									 "if (abs(length(mix_color-best_color)) > abs(length(mix_color-c7))) best_color = c7;\n"
 									 "if (abs(length(mix_color-best_color)) > abs(length(mix_color-c8))) best_color = c8;\n"
 									 "if (abs(length(mix_color-best_color)) > abs(length(mix_color-c9))) best_color = c9;\n"
-
-									 /*"bw = 0.8;\n"
-									 "c1 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2( 0, 0))*texture_size), 0);\n"
-									 "c2 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2(-1, 0))*texture_size), 0);\n"
-									 "c3 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2( 1, 0))*texture_size), 0);\n"
-									 "c4 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2( 0,-1))*texture_size), 0);\n"
-									 "c5 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2( 0, 1))*texture_size), 0);\n"
-									 "c6 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2(-1, 1))*texture_size), 0);\n"
-									 "c7 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2( 1, 1))*texture_size), 0);\n"
-									 "c8 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2(-1,-1))*texture_size), 0);\n"
-									 "c9 = texelFetch(texture_sampler, ivec2((texture_uv + bw*texel_size*vec2( 1,-1))*texture_size), 0);\n"
-
-									 "if (abs(length(mix_color-best_color)) > abs(length(mix_color-c1))) best_color = c1;\n"
-									 "if (abs(length(mix_color-best_color)) > abs(length(mix_color-c2))) best_color = c2;\n"
-									 "if (abs(length(mix_color-best_color)) > abs(length(mix_color-c3))) best_color = c3;\n"
-									 "if (abs(length(mix_color-best_color)) > abs(length(mix_color-c4))) best_color = c4;\n"
-									 "if (abs(length(mix_color-best_color)) > abs(length(mix_color-c5))) best_color = c5;\n"
-									 "if (abs(length(mix_color-best_color)) > abs(length(mix_color-c6))) best_color = c6;\n"
-									 "if (abs(length(mix_color-best_color)) > abs(length(mix_color-c7))) best_color = c7;\n"
-									 "if (abs(length(mix_color-best_color)) > abs(length(mix_color-c8))) best_color = c8;\n"
-									 "if (abs(length(mix_color-best_color)) > abs(length(mix_color-c9))) best_color = c9;\n"*/
 
 									 "return best_color;//(mix_color+best_color)/2;\n"
 
