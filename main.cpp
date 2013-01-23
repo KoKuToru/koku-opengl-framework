@@ -560,10 +560,14 @@ class test_window: public koku::opengl::windowCallback
 									 "	}\n"
 									 "	float f = 250*fwidth(Vertex.xyz);\n"
 									 "	float D = clamp(min(min(Distance.x, Distance.y), Distance.z) / (f/250*15), 0.9, 1.0);\n"
-									 "	FragColor = vec4((vec4(D,D,D,1) * texture2D_Filter(texture, UV_fr, f)).xyz, gl_FragCoord.z);\n"
+									 "	float depth = (2.0 * gl_FragCoord.z - gl_DepthRange.near - gl_DepthRange.far) / (gl_DepthRange.far - gl_DepthRange.near);\n"
+									 "	FragColor = vec4((vec4(D,D,D,1) * texture2D_Filter(texture, UV_fr, f)).xyz, depth);\n"
+									 //"	depth = depth/gl_FragCoord.w;\n"
+									 //"	FragColor = vec4(depth, depth, depth, 1);\n"
 									 //"	FragColor = texture2D_Filter(texture, UV_fr, f);\n"
 									 //"	FragColor = texture2D(texture, UV_fr);\n"
 									 //"	FragColor = texelFetch(texture, ivec2(UV_fr*64), 0);"
+									 //"	FragColor = vec4(Vertex.x, Vertex.y, /*Vertex.z*/depth, 0);"
 									 "}\n");
 
 			my_shader.compile();
