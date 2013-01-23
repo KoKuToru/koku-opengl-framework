@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 
 project(koku-opengl-framework)
-ADD_LIBRARY(koku-opengl-framework lib/window.cpp lib/window.h)
+ADD_LIBRARY(koku-opengl-framework lib/window.cpp lib/window.h lib/buffer.cpp lib/buffer.h lib/rendertarget.cpp lib/rendertarget.h lib/compute.cpp lib/compute.h lib/shader.cpp lib/shader.h lib/texture.cpp lib/texture.h)
 ADD_EXECUTABLE(koku-opengl-example example/main.cpp)
 target_link_libraries(koku-opengl-framework SDL2main SDL2 pthread)
 target_link_libraries(koku-opengl-example pthread koku-opengl-framework)
