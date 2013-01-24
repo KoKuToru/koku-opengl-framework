@@ -10,5 +10,9 @@ target_link_libraries(koku-opengl-example pthread koku-opengl-framework)
 ADD_EXECUTABLE(example_1_simple_vertex_buffer example/example_1_simple_vertex_buffer.cpp)
 target_link_libraries(example_1_simple_vertex_buffer pthread koku-opengl-framework)
 
+#Sample 2:
+ADD_EXECUTABLE(example_2_texture example/example_2_texture.cpp)
+target_link_libraries(example_2_texture pthread koku-opengl-framework)
+
 include_directories("${PROJECT_SOURCE_DIR}/lib")
 set(CMAKE_CXX_FLAGS "-std=c++0x -ldl -lrt -lGL")
