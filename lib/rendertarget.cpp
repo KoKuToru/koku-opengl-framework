@@ -26,7 +26,15 @@ rendertarget::~rendertarget()
 void rendertarget::bind(texture *my_tex, int tex_count)
 {
 	win->begin();
-	if ((w != my_tex->w) || (h != my_tex->h))
+	bool not_same = tex_count != textures.size();
+	if (!not_same)
+	{
+		for(int i = 0; i < tex_count; ++i)
+		{
+			not_same &= (my_tex[i].id != textures[i]);
+		}
+	}
+	if ((w != my_tex->w) || (h != my_tex->h) || (not_same))
 	{
 		if ((w != -1)||(h != -1))
 		{
@@ -35,6 +43,7 @@ void rendertarget::bind(texture *my_tex, int tex_count)
 
 			glDeleteRenderbuffers(1, &rbo_id);
 			glDeleteFramebuffers(1, &fbo_id);
+			textures.clear();
 		}
 		glGenRenderbuffers(1, &rbo_id);
 		glGenFramebuffers(1, &fbo_id);
@@ -76,5 +85,4 @@ void rendertarget::end()
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 	win->end();
-	textures.clear();
 }
