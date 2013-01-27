@@ -18,5 +18,9 @@ target_link_libraries(example_2_texture pthread koku-opengl-framework)
 ADD_EXECUTABLE(example_3_rendertarget example/example_3_rendertarget.cpp)
 target_link_libraries(example_3_rendertarget pthread koku-opengl-framework)
 
+#Sample 4:
+ADD_EXECUTABLE(example_4_plane_reflection example/example_4_plane_reflection.cpp)
+target_link_libraries(example_4_plane_reflection pthread koku-opengl-framework)
+
 include_directories("${PROJECT_SOURCE_DIR}/lib")
 set(CMAKE_CXX_FLAGS "-std=c++0x -ldl -lrt -lGL")
