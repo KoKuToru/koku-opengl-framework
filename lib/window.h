@@ -21,6 +21,8 @@ namespace koku
 			public:
 				virtual void onResize(int width, int height) {}
 				virtual void onQuit() {}
+				virtual void onMouseMotion(int x, int y, int rx, int ry) {}
+				virtual void onMouseButtonDown(int button, int x, int y) {}
 		};
 
 		class window

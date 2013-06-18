@@ -197,6 +197,12 @@ void window::update()
 					//what should I do ? now ?
 				}
 				break;
+			case SDL_MOUSEMOTION:
+				callback->onMouseMotion(e.motion.x, e.motion.y, e.motion.xrel, e.motion.yrel);
+				break;
+			case SDL_MOUSEBUTTONDOWN:
+				callback->onMouseButtonDown(e.button.button, e.button.x, e.button.y);
+				break;
 			default:
 				break;
 		}
